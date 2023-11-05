@@ -33,11 +33,25 @@ header_for_sign = {
     'platform': '',
     'timestamp': '',
     'dId': '',
-    'vName': ''
+    'vName': '1.4.1' #低于4.1会导致服务器不处理浏览帖子加经验事件
 }
 
+# 获取推荐帖子url
+recommand_url = "https://zonai.skland.com/api/v1/rec/index"
+# 获取文章详情url
+get_item_url = "https://zonai.skland.com/api/v1/item/list"
+# 获取帖子评论url
+get_comment_url = "https://zonai.skland.com/api/v1/comment/list-by-topic"
+# 获取未读消息数url
+get_unread_count_url = "https://zonai.skland.com/api/v1/unread/count"
+# 获取未成年状态url
+get_teenager_status_url = "https://zonai.skland.com/api/v1/user/teenager"
 # 签到url
 sign_url = "https://zonai.skland.com/api/v1/game/attendance"
+# 动作url
+action_url = "https://zonai.skland.com/api/v1/action/trigger"
+# 检票url
+checkin_url = "https://zonai.skland.com/api/v1/score/checkin"
 # 绑定的角色url
 binding_url = "https://zonai.skland.com/api/v1/game/player/binding"
 # 验证码url
@@ -130,6 +144,8 @@ def get_sign_header(url: str, method, body, old_header):
         h['sign'], header_ca = generate_signature(sign_token, p.path, json.dumps(body))
     for i in header_ca:
         h[i] = header_ca[i]
+    h['vName'] = '1.4.1'
+    h['vCode'] = '100401001'
     return h
 
 
@@ -221,11 +237,7 @@ def list_awards(game_id, uid):
     print(resp)
 
 
-def do_sign(cred_resp):
-    # 加到全局里去吧，反正没有多线程
-    global sign_token
-    sign_token = cred_resp['token']
-    header['cred'] = cred_resp['cred']
+def do_sign():
     characters = get_binding_list()
 
     for i in characters:
@@ -245,6 +257,88 @@ def do_sign(cred_resp):
                 f'角色{i.get("nickName")}({i.get("channelName")})签到成功，获得了{res["name"]}×{j.get("count") or 1}'
             )
 
+
+def get_score_by_checkin(region):
+    body = {
+        'gameId': region
+    }
+    resp = requests.post(checkin_url, headers=get_sign_header(checkin_url, 'post', body, header), json=body).json()
+    if (resp['code'] == 0):
+        print(f'在版区{region}检票成功')
+    else:
+        print(f'在版区{region}检票失败了！原因：{resp.get("message")}')
+
+
+def get_score_by_read_articles(region):
+    def get_rec():
+        nonlocal region
+        url = f"{recommand_url}?gameId={region}&cateId=17&sortType=1&pageToken=&pageSize=10"
+        resp = requests.get(url, headers=get_sign_header(url, 'get', '', header)).json()
+        if (resp['code'] != 0):
+            raise Exception(f"在版区{region}获取推荐列表失败，原因：{resp['message']}")
+        return resp
+    
+    def read(article):
+        item_id = article['item']['id']
+        title = article['item']['title']
+        url = f"{get_item_url}?ids={item_id}&teenager=0"
+        resp = requests.get(url, headers=get_sign_header(url, 'get','', header)).json()
+        if (resp['code'] != 0):
+            raise Exception(f"获取文章{item_id}详情失败，原因：{resp['message']}")
+        else:
+            print(f"获取文章{item_id}（{title}）详情成功，认定为浏览内容")
+            
+        
+    def get_comment_and_like(article):
+        item_id = article['item']['id']
+        title = article['item']['title']
+        url = f"{get_comment_url}?parentId={item_id}&parentKind=item&sortType=1&pageToken=0&userId=0&pageSize=10&topId=0"
+        resp = requests.get(url, headers=get_sign_header(url, 'get', '', header)).json()
+        if (resp['code'] != 0):
+            print(f"获取文章{item_id}（{title}）的评论列表失败，原因：{resp['message']}")
+
+        for i in range(3):
+            try:
+                c_id = resp['data']['list'][i]['meta']['comment']['id']
+                usr_name = resp['data']['list'][i]['meta']['user']['nickname']
+
+                body = {
+                    'action':11,
+                    'objectId': int(c_id)
+                }
+                resp_like = requests.post(action_url, headers=get_sign_header(action_url, 'post', body, header),json=body).json()
+                if (resp_like['code'] != 0):
+                    print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞失败，原因：{resp_like['message']}")
+                else:
+                    print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞成功")
+            except Exception as e:
+                continue
+        pass
+        
+
+    rec = get_rec()
+    for arti in rec['data']['list']:
+        try:
+            itemid = arti['item']['id']
+
+            #TODO:read(arti)
+            get_comment_and_like(arti)
+            time.sleep(0.5)
+        except Exception as e:
+            print("发生了不影响程序继续运行的错误：",str(e))
+            continue
+
+        pass
+
+
+def do_get_score():
+    region = [1,2,3,4,100]
+
+    for i in region:
+        #TODO:get_score_by_checkin(i)
+        get_score_by_read_articles(i)
+        pass
+    pass
 
 def save(token):
     with open(token_save_name, 'w') as f:
@@ -307,12 +401,29 @@ def start():
     token = do_init()
     for i in token:
         try:
-            do_sign(get_cred_by_token(i))
-        except Exception as ex:
-            print(f'签到失败，原因：{str(ex)}')
-            logging.error('', exc_info=ex)
-    print("签到完成！")
+            cred = get_cred_by_token(i)
+            global sign_token
+            sign_token = cred['token']
+            header['cred'] = cred['cred']
 
+            do_sign()
+            do_get_score()
+        except Exception as ex:
+            print(f'处理森空岛日常事务失败，原因：{str(ex)}')
+            logging.error('', exc_info=ex)
+    print("处理森空岛日常事务完成！")
+
+
+def test():
+    token = do_init()
+    for i in token:
+        cred = get_cred_by_token(i)
+        global sign_token
+        sign_token = cred['token']
+        header['cred'] = cred['cred']
+        
+        do_get_score()
+    pass
 
 if __name__ == '__main__':
     print('本项目源代码仓库：https://github.com/xxyz30/skyland-auto-sign(已被github官方封禁)')
@@ -322,7 +433,8 @@ if __name__ == '__main__':
     logging.info('=========starting==========')
 
     start_time = time.time()
-    start()
+    #TODO:start()
+    test()
     end_time = time.time()
     logging.info(f'complete with {(end_time - start_time) * 1000} ms')
     logging.info('===========ending============')
