@@ -3,6 +3,7 @@ import hmac
 import json
 import os.path
 import time
+import datetime
 from getpass import getpass
 import logging
 from urllib import parse
@@ -10,6 +11,36 @@ from urllib import parse
 import requests
 
 from datetime import date
+
+publish_params = {
+    "1":{
+        "gameId": 1,
+        "cateId": 2,
+        "tagIdsSlice": [
+            474
+        ]
+    },
+    "2":{
+        "gameId":2,
+        "cateId":8,
+        "tagIdsSlice":[35]
+    },
+    "3":{
+        "gameId":3,
+        "cateId":11,
+        "tagIdsSlice":[297]
+    },
+    "4":{
+        "gameId":4,
+        "cateId":19,
+        "tagIdsSlice":[588]
+    },
+    "100":{
+        "gameId":100,
+        "cateId":6,
+        "tagIdsSlice":[306]
+    }
+}
 
 token_save_name = 'TOKEN.txt'
 app_code = '4ca99fa6b56cc2ba'
@@ -50,6 +81,14 @@ get_teenager_status_url = "https://zonai.skland.com/api/v1/user/teenager"
 sign_url = "https://zonai.skland.com/api/v1/game/attendance"
 # 动作url
 action_url = "https://zonai.skland.com/api/v1/action/trigger"
+# 分享url
+share_url = "https://zonai.skland.com/api/v1/score/share"
+# 发评论url
+comment_url = "https://zonai.skland.com/api/v1/comment/post"
+# 发布帖子url
+publish_url = "https://zonai.skland.com/api/v1/item/sub"
+# 删除帖子url
+delete_article_url = "https://zonai.skland.com/api/v1/item/del"
 # 检票url
 checkin_url = "https://zonai.skland.com/api/v1/score/checkin"
 # 绑定的角色url
@@ -268,6 +307,30 @@ def get_score_by_checkin(region):
     else:
         print(f'在版区{region}检票失败了！原因：{resp.get("message")}')
 
+def get_comment_and_like_a_few(item_id,title,head,like_times):
+    url = f"{get_comment_url}?parentId={item_id}&parentKind=item&sortType=1&pageToken=0&userId=0&pageSize=15&topId=0"
+    resp = requests.get(url, headers=get_sign_header(url, 'get', '', head)).json()
+    if (resp['code'] != 0):
+        print(f"获取文章{item_id}（{title}）的评论列表失败，原因：{resp['message']}")
+
+    for i in range(like_times):
+        try:
+            c_id = resp['data']['list'][i]['meta']['comment']['id']
+            usr_name = resp['data']['list'][i]['meta']['user']['nickname']
+
+            body = {
+                'action':11,
+                'objectId': int(c_id)
+            }
+            resp_like = requests.post(action_url, headers=get_sign_header(action_url, 'post', body, head),json=body).json()
+            if (resp_like['code'] != 0):
+                print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞失败，原因：{resp_like['message']}")
+            else:
+                print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞成功")
+        except Exception as e:
+            continue
+    pass
+
 
 def get_score_by_read_articles(region):
     def get_rec():
@@ -287,33 +350,6 @@ def get_score_by_read_articles(region):
             raise Exception(f"获取文章{item_id}详情失败，原因：{resp['message']}")
         else:
             print(f"获取文章{item_id}（{title}）详情成功，认定为浏览内容")
-            
-        
-    def get_comment_and_like(article):
-        item_id = article['item']['id']
-        title = article['item']['title']
-        url = f"{get_comment_url}?parentId={item_id}&parentKind=item&sortType=1&pageToken=0&userId=0&pageSize=10&topId=0"
-        resp = requests.get(url, headers=get_sign_header(url, 'get', '', header)).json()
-        if (resp['code'] != 0):
-            print(f"获取文章{item_id}（{title}）的评论列表失败，原因：{resp['message']}")
-
-        for i in range(3):
-            try:
-                c_id = resp['data']['list'][i]['meta']['comment']['id']
-                usr_name = resp['data']['list'][i]['meta']['user']['nickname']
-
-                body = {
-                    'action':11,
-                    'objectId': int(c_id)
-                }
-                resp_like = requests.post(action_url, headers=get_sign_header(action_url, 'post', body, header),json=body).json()
-                if (resp_like['code'] != 0):
-                    print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞失败，原因：{resp_like['message']}")
-                else:
-                    print(f"为文章{item_id}（{title}）内【{usr_name}】的评论{c_id}点赞成功")
-            except Exception as e:
-                continue
-        pass
         
 
     rec = get_rec()
@@ -321,8 +357,8 @@ def get_score_by_read_articles(region):
         try:
             itemid = arti['item']['id']
 
-            #TODO:read(arti)
-            get_comment_and_like(arti)
+            read(arti)
+            get_comment_and_like_a_few(arti['item']['id'],arti['item']['title'],header,3)
             time.sleep(0.5)
         except Exception as e:
             print("发生了不影响程序继续运行的错误：",str(e))
@@ -330,14 +366,161 @@ def get_score_by_read_articles(region):
 
         pass
 
+def send_comment(artc_id,content,head):
+    param = {
+        "comment": {
+            "id": 0,
+            "userId": 0,
+            "level": 1,
+            "itemId": 0,
+            "itemUserId": 0,
+            "parentId": artc_id,
+            "parentUserId": 0,
+            "replyToSubCommentId": 0,
+            "replyToUserId": 0,
+            "format": "{\"version\":0,\"data\":[{\"type\":\"paragraph\",\"contents\":[{\"type\":\"text\",\"contentId\":\"1\",\"bold\":false,\"underline\":0,\"italic\":false,\"foregroundColor\":\"#222222\"}]}]}",
+            "status": 0,
+            "textSlice": [
+                {
+                    "id": "1",
+                    "c": content
+                }
+            ],
+            "imageListSlice": [],
+            "operationStatus": 0,
+            "auditStatus": 0,
+            "sortWeight": 0,
+            "createdAtTs": 0,
+            "updatedAtTs": 0,
+            "firstIpLocation": ""
+        }
+    }
+    resp = requests.post(comment_url, headers=get_sign_header(comment_url, 'post', param, head),json=param).json()
+    if (resp['code'] != 0):
+        raise Exception(f"向文章{artc_id}发表评论“{content}”失败，原因：{resp['message']}")
+    else:
+        print(f"向文章{artc_id}发表评论“{content}”成功")
+
+def like_article(item_id,header):
+    body = {
+        'action':21,
+        'objectId': int(item_id)
+    }
+    resp_like = requests.post(action_url, headers=get_sign_header(action_url, 'post', body, header),json=body).json()
+    if (resp_like['code'] != 0):
+        print(f"收藏文章{item_id}失败，原因：{resp_like['message']}")
+    else:
+        print(f"收藏文章{item_id}成功")
+    pass
+
+
+def get_score_by_publish_like_and_reply(region):
+    def publish(title,content):
+        nonlocal region
+        param = {
+            "item": {
+                "origin": 2,
+                "repost": 1,
+                "downloadEnable": 1,
+                "source": "",
+                "title": title,
+                "viewKind": 4,
+                "caption": [
+                    {
+                        "type": "text",
+                        "id": "1"
+                    }
+                ],
+                "format": "{\"version\":0,\"data\":[{\"type\":\"paragraph\",\"contents\":[{\"type\":\"text\",\"contentId\":\"1\",\"bold\":false,\"underline\":0,\"italic\":false,\"foregroundColor\":\"#222222\"}]}]}",
+                "imageCoverIndex": "",
+                "linkSlice": [],
+                "textSlice": [
+                    {
+                        "id": "1",
+                        "c": content
+                    }
+                ],
+                "bvSlice": [],
+                "imageListSlice": []
+            }
+        }
+        param["item"].update(publish_params[str(region)])
+
+        resp = requests.post(publish_url, headers=get_sign_header(publish_url, 'post', param, header),json=param).json()
+        if (resp['code'] != 0):
+            raise Exception(f"发布文章（{title}）失败，原因：{resp['message']}")
+        else:
+            item_id = resp["data"]["item"]["id"]
+            print(f"发布文章{item_id}（{title}）成功")
+            return item_id
+    
+    def delete(item_id):
+        body = {
+            "id": item_id
+        }
+        resp = requests.post(delete_article_url, headers=get_sign_header(delete_article_url, 'post', body, header),json=body).json()
+        if (resp['code'] != 0):
+            raise Exception(f"删除文章{item_id}失败，原因：{resp['message']}")
+        else:
+            print(f"删除文章{item_id}成功")
+
+    articles = []
+    for i in range(10):
+        i_id = publish(f"水水水{i}",f"{datetime.datetime.now()}")
+        articles.append(i_id)
+        pass
+
+    helper_token = read("HELPER_TOKEN.txt")[0]
+    helper_cred = get_cred_by_token(helper_token)
+    helper_header = header_login
+    helper_header['cred'] = helper_cred['cred']
+
+    num = 0
+    for i in articles:
+        if num <= 1:
+            for j in range(8):
+                try:
+                    send_comment(i,f"水水水!{datetime.datetime.now()}",header)
+                    
+                except:pass
+
+            time.sleep(15)
+            try:
+                get_comment_and_like_a_few(i,"水水水",helper_header,8)
+            except:pass
+
+            for j in range(8):
+                try:
+                    send_comment(i,f"[s]水水水!{datetime.datetime.now()}",helper_header)
+                except:pass
+        like_article(i,helper_header)
+        num+=1
+
+    for i in articles:
+        try:
+            delete(i)
+        except:pass
+
+def get_score_by_share(i):
+    body = {
+        'gameId': i
+    }
+    resp = requests.post(share_url, headers=get_sign_header(share_url, 'post', body, header),json=body).json()
+    if (resp['code'] != 0):
+        print(f"分享文章失败，原因：{resp['message']}")
+    else:
+        print(f"分享文章成功")
+    pass
 
 def do_get_score():
     region = [1,2,3,4,100]
 
     for i in region:
-        #TODO:get_score_by_checkin(i)
+        get_score_by_checkin(i)
         get_score_by_read_articles(i)
-        pass
+        get_score_by_publish_like_and_reply(i)
+        get_score_by_share(i)
+        time.sleep(30) #等待一下，避免频繁
     pass
 
 def save(token):
@@ -433,8 +616,8 @@ if __name__ == '__main__':
     logging.info('=========starting==========')
 
     start_time = time.time()
-    #TODO:start()
-    test()
+    start()
+    #test()
     end_time = time.time()
     logging.info(f'complete with {(end_time - start_time) * 1000} ms')
     logging.info('===========ending============')
