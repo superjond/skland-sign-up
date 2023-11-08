@@ -105,7 +105,7 @@ def get_score_by_read_articles_and_like(region):
                 for c in comment:
                     try:
                         comment_id = c['meta']['comment']['id']
-                        api.like_item(comment_id)
+                        api.like_comment(comment_id)
                         print(f"[版区{region}][文章{itemid}]点赞评论{comment_id}成功")
                         total_liked += 1
                     except Exception as e:
@@ -132,6 +132,8 @@ def get_score_by_publish_like_and_reply(region):
         first_comments.append(comment)
         print(f"[版区{region}][文章{articles[0]}]发布评论{comment}成功")
 
+    time.sleep(15)
+
     helper_token_file = "HELPER_TOKEN.txt"
     if (os.path.exists(helper_token_file)):
         helper_token = read(helper_token_file)[0]
@@ -139,7 +141,7 @@ def get_score_by_publish_like_and_reply(region):
 
         for at in articles:
             try:
-                helper_api.like_item(at)
+                helper_api.like_article(at)
                 print(f"[版区{region}][文章{articles[0]}]小号点赞文章{at}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
@@ -158,7 +160,7 @@ def get_score_by_publish_like_and_reply(region):
 
         for comment in first_comments:
             try:
-                helper_api.like_item(comment)
+                helper_api.like_comment(comment)
                 print(f"[版区{region}][文章{articles[0]}]小号点赞评论{comment}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
@@ -180,14 +182,15 @@ def get_score_by_share(i):
 
 
 def do_get_score():
-    region = [1, 2, 3, 4, 100]
+    region = [4,100]
 
     for i in region:
         get_score_by_checkin(i)
         get_score_by_share(i)
         get_score_by_read_articles_and_like(i)
         get_score_by_publish_like_and_reply(i)
-        time.sleep(30)  # 等待一下，避免频繁
+        if i is not region[len(region)-1]:
+            time.sleep(45)  # 等待一下，避免频繁
     pass
 
 

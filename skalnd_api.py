@@ -297,20 +297,26 @@ class API:
         resp = requests.get(
             url, headers=self._get_sign_header(url, 'get', '')).json()
         if (resp['code'] != 0):
-            raise Exception(f"获取文章{item_id}的评论列表失败，原因：{resp['message']}")
+            raise Exception(f"获取文章{item_id}的评论列表失败：{resp['message']}")
         return resp['data']['list']
 
-    def like_item(self, item_id) -> None:
+    def like_comment(self, item_id) -> None:
         try:
             self._action_item(item_id, 11)
         except API._ExecActionToItemException as e:
-            raise Exception(f"为评论{item_id}点赞失败，原因：{e.origin_msg}")
+            raise Exception(f"为{item_id}点赞失败：{e.origin_msg}")
+        
+    def like_article(self, item_id) -> None:
+        try:
+            self._action_item(item_id, 12)
+        except API._ExecActionToItemException as e:
+            raise Exception(f"为{item_id}点赞失败：{e.origin_msg}")
 
     def fav_article(self, item_id):
         try:
             self._action_item(item_id, 21)
         except API._ExecActionToItemException as e:
-            raise Exception(f"收藏{item_id}失败，原因：{e.origin_msg}")
+            raise Exception(f"收藏{item_id}失败：{e.origin_msg}")
 
     class _ExecActionToItemException(Exception):
         def __init__(self, msg):
