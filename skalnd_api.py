@@ -142,13 +142,11 @@ class API:
 
     def __init__(self, _hyusr_api_token):
         self._header = {
-            # FIXME:1.4.1可能出现问题？原文为1.0.1。待观察。
             'User-Agent': 'Skland/1.4.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
             'Accept-Encoding': 'gzip',
             'Connection': 'close'
         }
         self._noauth_header = {
-            # FIXME:1.4.1可能出现问题？原文为1.0.1。待观察。
             'User-Agent': 'Skland/1.4.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
             'Accept-Encoding': 'gzip',
             'Connection': 'close'
@@ -243,6 +241,7 @@ class API:
             h[i] = header_ca[i]
 
         # FIXME:可能可以放在别的地方，但是不敢改
+        # 必须使用1.4以上的版本，服务端才能正确处理加经验事件
         h['vName'] = '1.4.1'
         h['vCode'] = '100401001'
         return h
