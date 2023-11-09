@@ -132,6 +132,7 @@ def get_score_by_publish_like_and_reply(region):
         first_comments.append(comment)
         print(f"[版区{region}][文章{articles[0]}]发布评论{comment}成功")
 
+    print(f"开始阻塞15秒等待数据同步...")
     time.sleep(15)
 
     helper_token_file = "HELPER_TOKEN.txt"
@@ -182,7 +183,7 @@ def get_score_by_share(i):
 
 
 def do_get_score():
-    region = [4,100]
+    region = [1,2,3]
 
     for i in region:
         get_score_by_checkin(i)
@@ -190,6 +191,7 @@ def do_get_score():
         get_score_by_read_articles_and_like(i)
         get_score_by_publish_like_and_reply(i)
         if i is not region[len(region)-1]:
+            print(f"版区{i}事务处理完毕，开始等待45秒处理下一版区任务")
             time.sleep(45)  # 等待一下，避免频繁
     pass
 
