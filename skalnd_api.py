@@ -139,14 +139,14 @@ class API:
             "tagIdsSlice": [306]
         }
     }
+    _noauth_header = {
+        'User-Agent': 'Skland/1.4.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
+        'Accept-Encoding': 'gzip',
+        'Connection': 'close'
+    }
 
     def __init__(self, _hyusr_api_token):
         self._header = {
-            'User-Agent': 'Skland/1.4.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
-            'Accept-Encoding': 'gzip',
-            'Connection': 'close'
-        }
-        self._noauth_header = {
             'User-Agent': 'Skland/1.4.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
             'Accept-Encoding': 'gzip',
             'Connection': 'close'
@@ -304,7 +304,7 @@ class API:
             self._action_item(item_id, 11)
         except API._ExecActionToItemException as e:
             raise Exception(f"为{item_id}点赞失败：{e.origin_msg}")
-        
+
     def like_article(self, item_id) -> None:
         try:
             self._action_item(item_id, 12)

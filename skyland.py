@@ -31,7 +31,7 @@ def config_logger():
 
 def login_by_code():
     phone = input('请输入手机号码：')
-    API.request_code()
+    API.request_code(phone)
     print(f"已向{phone}发送手机验证码")
 
     code = input("请输入手机验证码：")
@@ -257,6 +257,8 @@ def start():
     token = do_init()
     for t in token:
         try:
+            print(f"正在使用TOEKN:{t}处理任务中")
+
             global api
             api = API(t)
 
