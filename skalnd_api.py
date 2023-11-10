@@ -113,30 +113,23 @@ class API:
     _regions_tag_id = {
         "1": {
             "gameId": 1,
-            "cateId": 2,
-            "tagIdsSlice": [
-                474
-            ]
+            "cateId": 2
         },
         "2": {
             "gameId": 2,
-            "cateId": 8,
-            "tagIdsSlice": [35]
+            "cateId": 8
         },
         "3": {
             "gameId": 3,
-            "cateId": 11,
-            "tagIdsSlice": [297]
+            "cateId": 11
         },
         "4": {
             "gameId": 4,
-            "cateId": 19,
-            "tagIdsSlice": [588]
+            "cateId": 19
         },
         "100": {
             "gameId": 100,
-            "cateId": 6,
-            "tagIdsSlice": [306]
+            "cateId": 6
         }
     }
     _noauth_header = {
@@ -368,6 +361,7 @@ class API:
                 "source": "",
                 "title": title,
                 "viewKind": 4,
+                "tagIdsSlice": [636],
                 "caption": [
                     {
                         "type": "text",
