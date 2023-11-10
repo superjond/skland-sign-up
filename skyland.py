@@ -183,7 +183,7 @@ def get_score_by_share(i):
 
 
 def do_get_score():
-    region = [1,2,3]
+    region = [1,2,3,4,100]
 
     for i in region:
         get_score_by_checkin(i)
