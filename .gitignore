@@ -5,3 +5,4 @@ logs
 .idea
 TOKEN.txt
 HELPER_TOKEN.txt
+__pycache__
