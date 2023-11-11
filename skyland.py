@@ -83,9 +83,7 @@ def get_score_by_checkin(region):
 
 
 def get_score_by_read_articles_and_like(region):
-    rec = api.get_recommend_articles(region)
-
-    total_liked = 0
+    rec = api.get_recommend_articles(region) #TODO：写一个最新排序，避免有文章看过了
 
     for arti in rec:
 
@@ -98,20 +96,6 @@ def get_score_by_read_articles_and_like(region):
         except Exception as e:
             print(str(e))
             pass
-
-        if total_liked < 10:
-            try:
-                comment = api.get_comment(itemid)
-                for c in comment:
-                    try:
-                        comment_id = c['meta']['comment']['id']
-                        api.like_comment(comment_id)
-                        print(f"[版区{region}][文章{itemid}]点赞评论{comment_id}成功")
-                        total_liked += 1
-                    except Exception as e:
-                        print(str(e))
-            except Exception as e:
-                print(str(e))
 
 
 def get_score_by_publish_like_and_reply(region):
@@ -132,13 +116,15 @@ def get_score_by_publish_like_and_reply(region):
         first_comments.append(comment)
         print(f"[版区{region}][文章{articles[0]}]发布评论{comment}成功")
 
-    print(f"开始阻塞15秒等待数据同步...")
-    time.sleep(15)
+    print(f"开始阻塞5秒等待数据同步...")
+    time.sleep(5)
 
     helper_token_file = "HELPER_TOKEN.txt"
     if (os.path.exists(helper_token_file)):
         helper_token = read(helper_token_file)[0]
         helper_api = API(helper_token)
+
+        helper_comments_sent = []
 
         for at in articles:
             try:
@@ -154,8 +140,9 @@ def get_score_by_publish_like_and_reply(region):
                 print(f"[版区{region}]{str(e)}")
 
             try:
-                helper_api.send_comment(at, f"{datetime.datetime.now()}")
-                print(f"[版区{region}][文章{articles[0]}]小号发送评论成功")
+                _helper_comment = helper_api.send_comment(at, f"{datetime.datetime.now()}")
+                print(f"[版区{region}][文章{articles[0]}]小号发送评论{_helper_comment}成功")
+                helper_comments_sent.append(_helper_comment)
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
 
@@ -163,6 +150,16 @@ def get_score_by_publish_like_and_reply(region):
             try:
                 helper_api.like_comment(comment)
                 print(f"[版区{region}][文章{articles[0]}]小号点赞评论{comment}成功")
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+        print(f"开始阻塞5秒等待数据同步...")
+        time.sleep(5)
+
+        for helper_comment_sent in helper_comments_sent:
+            try:
+                api.like_comment(helper_comment_sent)
+                print(f"[版区{region}]点赞评论{comment}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
 
