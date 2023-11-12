@@ -324,8 +324,8 @@ class API:
         if (resp['code'] != 0):
             raise API._ExecActionToItemException(resp['message'])
 
-    def get_recommend_articles(self, region_code) -> list:
-        url = f"{self._recommand_url}?gameId={region_code}&cateId=17&sortType=1&pageToken=&pageSize=10"
+    def get_recommend_articles(self, region_code, sort_type) -> list:
+        url = f"{self._recommand_url}?gameId={region_code}&cateId=17&sortType={sort_type}&pageToken=&pageSize=10"
         resp = requests.get(
             url, headers=self._get_sign_header(url, 'get', None)).json()
         if (resp['code'] != 0):

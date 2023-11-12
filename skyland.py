@@ -83,7 +83,7 @@ def get_score_by_checkin(region):
 
 
 def get_score_by_read_articles_and_like(region):
-    rec = api.get_recommend_articles(region) #TODO：写一个最新排序，避免有文章看过了
+    rec = api.get_recommend_articles(region,2)
 
     for arti in rec:
 
