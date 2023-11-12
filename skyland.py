@@ -129,19 +129,19 @@ def get_score_by_publish_like_and_reply(region):
         for at in articles:
             try:
                 helper_api.like_article(at)
-                print(f"[版区{region}][文章{articles[0]}]小号点赞文章{at}成功")
+                print(f"[版区{region}][文章{at}]小号点赞文章{at}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
 
             try:
                 helper_api.fav_article(at)
-                print(f"[版区{region}][文章{articles[0]}]小号收藏文章{at}成功")
+                print(f"[版区{region}][文章{at}]小号收藏文章{at}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
 
             try:
                 _helper_comment = helper_api.send_comment(at, f"{datetime.datetime.now()}")
-                print(f"[版区{region}][文章{articles[0]}]小号发送评论{_helper_comment}成功")
+                print(f"[版区{region}][文章{at}]小号发送评论{_helper_comment}成功")
                 helper_comments_sent.append(_helper_comment)
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
@@ -159,7 +159,7 @@ def get_score_by_publish_like_and_reply(region):
         for helper_comment_sent in helper_comments_sent:
             try:
                 api.like_comment(helper_comment_sent)
-                print(f"[版区{region}]点赞评论{comment}成功")
+                print(f"[版区{region}]点赞评论{helper_comment_sent}成功")
             except Exception as e:
                 print(f"[版区{region}]{str(e)}")
 
