@@ -1,150 +1,46 @@
-import hashlib
-import hmac
 import json
 import os.path
 import time
+import datetime
 from getpass import getpass
 import logging
-from urllib import parse
 
-import requests
+from skalnd_api import API
 
 from datetime import date
 
+api: API
+
 token_save_name = 'TOKEN.txt'
-app_code = '4ca99fa6b56cc2ba'
 token_env = os.environ.get('TOKEN')
-sign_token = ''
-header = {
-    'cred': '',
-    'User-Agent': 'Skland/1.0.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
-    'Accept-Encoding': 'gzip',
-    'Connection': 'close'
-}
-header_login = {
-    'User-Agent': 'Skland/1.0.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
-    'Accept-Encoding': 'gzip',
-    'Connection': 'close'
-}
-
-# 签名请求头一定要这个顺序，否则失败
-# timestamp是必填的,其它三个随便填,不要为none即可
-header_for_sign = {
-    'platform': '',
-    'timestamp': '',
-    'dId': '',
-    'vName': ''
-}
-
-# 签到url
-sign_url = "https://zonai.skland.com/api/v1/game/attendance"
-# 绑定的角色url
-binding_url = "https://zonai.skland.com/api/v1/game/player/binding"
-# 验证码url
-login_code_url = "https://as.hypergryph.com/general/v1/send_phone_code"
-# 验证码登录
-token_phone_code_url = "https://as.hypergryph.com/user/auth/v2/token_by_phone_code"
-# 密码登录
-token_password_url = "https://as.hypergryph.com/user/auth/v1/token_by_phone_password"
-# 使用token获得认证代码
-grant_code_url = "https://as.hypergryph.com/user/oauth2/v2/grant"
-# 使用认证代码获得cred
-cred_code_url = "https://zonai.skland.com/api/v1/user/auth/generate_cred_by_code"
 
 
 def config_logger():
     current_date = date.today().strftime('%Y-%m-%d')
     if not os.path.exists('logs'):
         os.mkdir('logs')
-    logger = logging.getLogger()
 
-    file_handler = logging.FileHandler(f'./logs/{current_date}.log', encoding='utf-8')
-    logger.addHandler(file_handler)
-    logging.getLogger().setLevel(logging.DEBUG)
+    file_handler = logging.FileHandler(
+        f'./logs/{current_date}.log', encoding='utf-8')
     file_handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(formatter)
-
-    def filter_code(text):
-        filter_key = ['code', 'cred', 'token']
-        try:
-            j = json.loads(text)
-            if not j.get('data'):
-                return text
-            data = j['data']
-            for i in filter_key:
-                if i in data:
-                    data[i] = '*****'
-            return json.dumps(j, ensure_ascii=False)
-        except:
-            return text
-
-    _get = requests.get
-    _post = requests.post
-
-    def get(*args, **kwargs):
-        response = _get(*args, **kwargs)
-        logger.info(f'GET {args[0]} - {response.status_code} - {filter_code(response.text)}')
-        return response
-
-    def post(*args, **kwargs):
-        response = _post(*args, **kwargs)
-        logger.info(f'POST {args[0]} - {response.status_code} - {filter_code(response.text)}')
-        return response
-
-    # 替换 requests 中的方法
-    requests.get = get
-    requests.post = post
-
-
-def generate_signature(token: str, path, body_or_query):
-    """
-    获得签名头
-    接口地址+方法为Get请求？用query否则用body+时间戳+ 请求头的四个重要参数（dId，platform，timestamp，vName）.toJSON()
-    将此字符串做HMAC加密，算法为SHA-256，密钥token为请求cred接口会返回的一个token值
-    再将加密后的字符串做MD5即得到sign
-    :param token: 拿cred时候的token
-    :param path: 请求路径（不包括网址）
-    :param body_or_query: 如果是GET，则是它的query。POST则为它的body
-    :return: 计算完毕的sign
-    """
-    # 总是说请勿修改设备时间，怕不是yj你的服务器有问题吧，所以这里特地-2
-    t = str(int(time.time()) - 2)
-    token = token.encode('utf-8')
-    header_ca = json.loads(json.dumps(header_for_sign))
-    header_ca['timestamp'] = t
-    header_ca_str = json.dumps(header_ca, separators=(',', ':'))
-    s = path + body_or_query + t + header_ca_str
-    hex_s = hmac.new(token, s.encode('utf-8'), hashlib.sha256).hexdigest()
-    md5 = hashlib.md5(hex_s.encode('utf-8')).hexdigest().encode('utf-8').decode('utf-8')
-    logging.info(f'算出签名: {md5}')
-    return md5, header_ca
-
-
-def get_sign_header(url: str, method, body, old_header):
-    h = json.loads(json.dumps(old_header))
-    p = parse.urlparse(url)
-    if method.lower() == 'get':
-        h['sign'], header_ca = generate_signature(sign_token, p.path, p.query)
-    else:
-        h['sign'], header_ca = generate_signature(sign_token, p.path, json.dumps(body))
-    for i in header_ca:
-        h[i] = header_ca[i]
-    return h
+    logging.basicConfig(level=logging.DEBUG,handlers=[file_handler])
 
 
 def login_by_code():
     phone = input('请输入手机号码：')
-    resp = requests.post(login_code_url, json={'phone': phone, 'type': 2}, headers=header_login).json()
-    if resp.get("status") != 0:
-        raise Exception(f"发送手机验证码出现错误：{resp['msg']}")
+    API.request_code(phone)
+    print(f"已向{phone}发送手机验证码")
+
     code = input("请输入手机验证码：")
-    r = requests.post(token_phone_code_url, json={"phone": phone, "code": code}, headers=header_login).json()
-    return get_token(r)
+    return API.get_token_by_phone_and_code(phone, code)
 
 
 def login_by_token():
-    token_code = input("请输入（登录森空岛电脑官网后请访问这个网址：https://web-api.skland.com/account/info/hg）:")
+    token_code = input(
+        "请输入（登录森空岛电脑官网后请访问这个网址：https://web-api.skland.com/account/info/hg）:")
     return parse_user_token(token_code)
 
 
@@ -160,90 +56,142 @@ def parse_user_token(t):
 def login_by_password():
     phone = input('请输入手机号码：')
     password = getpass('请输入密码：')
-    r = requests.post(token_password_url, json={"phone": phone, "password": password}, headers=header_login).json()
-    return get_token(r)
+    return API.get_token_by_phone_and_password(phone, password)
 
 
-def get_cred_by_token(token):
-    grant_code = get_grant_code(token)
-    return get_cred(grant_code)
-
-
-def get_token(resp):
-    if resp.get('status') != 0:
-        raise Exception(f'获得token失败：{resp["msg"]}')
-    return resp['data']['token']
-
-
-def get_grant_code(token):
-    response = requests.post(grant_code_url, json={
-        'appCode': app_code,
-        'token': token,
-        'type': 0
-    }, headers=header_login)
-    resp = response.json()
-    if response.status_code != 200:
-        raise Exception(f'获得认证代码失败：{resp}')
-    if resp.get('status') != 0:
-        raise Exception(f'获得认证代码失败：{resp["msg"]}')
-    return resp['data']['code']
-
-
-def get_cred(grant):
-    resp = requests.post(cred_code_url, json={
-        'code': grant,
-        'kind': 1
-    }, headers=header_login).json()
-    if resp['code'] != 0:
-        raise Exception(f'获得cred失败：{resp["message"]}')
-    return resp['data']
-
-
-def get_binding_list():
-    v = []
-    resp = requests.get(binding_url, headers=get_sign_header(binding_url, 'get', None, header)).json()
-
-    if resp['code'] != 0:
-        print(f"请求角色列表出现问题：{resp['message']}")
-        if resp.get('message') == '用户未登录':
-            print(f'用户登录可能失效了，请重新运行此程序！')
-            os.remove(token_save_name)
-            return []
-    for i in resp['data']['list']:
-        if i.get('appCode') != 'arknights':
-            continue
-        v.extend(i.get('bindingList'))
-    return v
-
-
-def list_awards(game_id, uid):
-    resp = requests.get(sign_url, headers=header, params={'gameId': game_id, 'uid': uid}).json()
-    print(resp)
-
-
-def do_sign(cred_resp):
-    # 加到全局里去吧，反正没有多线程
-    global sign_token
-    sign_token = cred_resp['token']
-    header['cred'] = cred_resp['cred']
-    characters = get_binding_list()
+def do_sign():
+    characters = api.get_binding_list()
 
     for i in characters:
-        body = {
-            'gameId': 1,
-            'uid': i.get('uid')
-        }
-        # list_awards(1, i.get('uid'))
-        resp = requests.post(sign_url, headers=get_sign_header(sign_url, 'post', body, header), json=body).json()
-        if resp['code'] != 0:
-            print(f'角色{i.get("nickName")}({i.get("channelName")})签到失败了！原因：{resp.get("message")}')
-            continue
-        awards = resp['data']['awards']
-        for j in awards:
-            res = j['resource']
-            print(
-                f'角色{i.get("nickName")}({i.get("channelName")})签到成功，获得了{res["name"]}×{j.get("count") or 1}'
-            )
+        try:
+            awards = api.sign(i)
+            for j in awards:
+                res = j['resource']
+                print(
+                    f'角色{i.get("nickName")}({i.get("channelName")})签到成功，获得了{res["name"]}×{j.get("count") or 1}'
+                )
+        except Exception as e:
+            print(str(e))
+
+
+def get_score_by_checkin(region):
+    try:
+        api.checkin(region)
+        print(f'[版区{region}]检票成功')
+    except Exception as e:
+        print(f'[版区{region}]{str(e)}')
+
+
+def get_score_by_read_articles_and_like(region):
+    rec = api.get_recommend_articles(region,2)
+
+    for arti in rec:
+
+        itemid = arti['item']['id']
+        title = arti['item']['title']
+
+        try:
+            api.get_item_detail(itemid)
+            print(f"[版区{region}]阅读文章《{title}》成功")
+        except Exception as e:
+            print(str(e))
+            pass
+
+
+def get_score_by_publish_like_and_reply(region):
+    articles = []
+    for i in range(10):
+        try:
+            title = f"水水水{i}"
+            i_id = api.publish_article(
+                title, f"{datetime.datetime.now()}", region)
+            articles.append(i_id)
+            print(f"[版区{region}]发布文章《{title}》成功")
+            time.sleep(3)
+        except Exception as e:
+            print(f"[版区{region}]{str(e)}")
+
+    first_comments = []
+    for i in range(6):
+        comment = api.send_comment(articles[0], f"{datetime.datetime.now()}")
+        first_comments.append(comment)
+        print(f"[版区{region}][文章{articles[0]}]发布评论{comment}成功")
+
+    print(f"开始阻塞5秒等待数据同步...")
+    time.sleep(5)
+
+    helper_token_file = "HELPER_TOKEN.txt"
+    if (os.path.exists(helper_token_file)):
+        helper_token = read(helper_token_file)[0]
+        helper_api = API(helper_token)
+
+        helper_comments_sent = []
+
+        for at in articles:
+            try:
+                helper_api.like_article(at)
+                print(f"[版区{region}][文章{at}]小号点赞文章{at}成功")
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+            try:
+                helper_api.fav_article(at)
+                print(f"[版区{region}][文章{at}]小号收藏文章{at}成功")
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+            try:
+                _helper_comment = helper_api.send_comment(at, f"{datetime.datetime.now()}")
+                print(f"[版区{region}][文章{at}]小号发送评论{_helper_comment}成功")
+                helper_comments_sent.append(_helper_comment)
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+        for comment in first_comments:
+            try:
+                helper_api.like_comment(comment)
+                print(f"[版区{region}][文章{articles[0]}]小号点赞评论{comment}成功")
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+        print(f"开始阻塞5秒等待数据同步...")
+        time.sleep(5)
+
+        for helper_comment_sent in helper_comments_sent:
+            try:
+                api.like_comment(helper_comment_sent)
+                print(f"[版区{region}]点赞评论{helper_comment_sent}成功")
+            except Exception as e:
+                print(f"[版区{region}]{str(e)}")
+
+    for arti in articles:
+        try:
+            api.delete_article(arti)
+            print(f"[版区{region}][文章{arti}]删除成功")
+        except Exception as e:
+            print(f"[版区{region}]{str(e)}")
+
+
+def get_score_by_share(i):
+    try:
+        api.share(i)
+        print(f"[版区{i}]执行分享文章动作成功")
+    except Exception as e:
+        print(f"[版区{i}]{str(e)}")
+
+
+def do_get_score():
+    region = [1,2,3,4,100]
+
+    for i in region:
+        get_score_by_checkin(i)
+        get_score_by_share(i)
+        get_score_by_read_articles_and_like(i)
+        get_score_by_publish_like_and_reply(i)
+        if i is not region[len(region)-1]:
+            print(f"版区{i}事务处理完毕，开始等待60秒处理下一版区任务")
+            time.sleep(60)  # 等待一下，避免频繁
+    pass
 
 
 def save(token):
@@ -305,13 +253,19 @@ def do_init():
 
 def start():
     token = do_init()
-    for i in token:
+    for t in token:
         try:
-            do_sign(get_cred_by_token(i))
+            print(f"正在使用TOEKN:{t}处理任务中")
+
+            global api
+            api = API(t)
+
+            do_sign()
+            do_get_score()
         except Exception as ex:
-            print(f'签到失败，原因：{str(ex)}')
+            print(f'处理森空岛日常事务失败：{str(ex)}')
             logging.error('', exc_info=ex)
-    print("签到完成！")
+    print("处理森空岛日常事务完成！")
 
 
 if __name__ == '__main__':
