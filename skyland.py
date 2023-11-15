@@ -107,6 +107,7 @@ def get_score_by_publish_like_and_reply(region):
                 title, f"{datetime.datetime.now()}", region)
             articles.append(i_id)
             print(f"[版区{region}]发布文章《{title}》成功")
+            time.sleep(3)
         except Exception as e:
             print(f"[版区{region}]{str(e)}")
 
@@ -188,8 +189,8 @@ def do_get_score():
         get_score_by_read_articles_and_like(i)
         get_score_by_publish_like_and_reply(i)
         if i is not region[len(region)-1]:
-            print(f"版区{i}事务处理完毕，开始等待45秒处理下一版区任务")
-            time.sleep(45)  # 等待一下，避免频繁
+            print(f"版区{i}事务处理完毕，开始等待60秒处理下一版区任务")
+            time.sleep(60)  # 等待一下，避免频繁
     pass
 
 
