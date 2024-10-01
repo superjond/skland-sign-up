@@ -3,6 +3,7 @@ import hmac
 import json
 import os.path
 import time
+import uuid
 from getpass import getpass
 import logging
 from urllib import parse
@@ -50,8 +51,6 @@ token_password_url = "https://as.hypergryph.com/user/auth/v1/token_by_phone_pass
 grant_code_url = "https://as.hypergryph.com/user/oauth2/v2/grant"
 # 使用认证代码获得cred
 cred_code_url = "https://zonai.skland.com/web/v1/user/auth/generate_cred_by_code"
-# 查询dId请求头
-devices_info_url = "https://fp-it.portal101.cn/deviceprofile/v4"
 
 
 def config_logger():
@@ -164,39 +163,6 @@ def login_by_password():
     password = getpass('请输入密码：')
     r = requests.post(token_password_url, json={"phone": phone, "password": password}, headers=header_login).json()
     return get_token(r)
-
-
-def get_d_id():
-    # 数美配置
-    SM_CONFIG = {
-        "organization": "UWXspnCCJN4sfYlNfqps",
-        "appId": "default",
-        "publicKey": "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCmxMNr7n8ZeT0tE1R9j/mPixoinPkeM+k4VGIn/s0k7N5rJAfnZ0eMER+QhwFvshzo0LNmeUkpR8uIlU/GEVr8mN28sKmwd2gpygqj0ePnBmOW4v0ZVwbSYK+izkhVFk2V/doLoMbWy6b+UnA8mkjvg0iYWRByfRsK2gdl7llqCwIDAQAB",
-        "protocol": "https",
-        "apiHost": "fp-it.portal101.cn"
-    }
-
-    # storageName = '.thumbcache_' + md5(SM_CONFIG['organization']) // 用于从本地存储获得值
-    # uid = uuid()
-    # priId=md5(uid)[0:16]
-    # ep=rsa(uid,publicKey)
-    # SMID = localStorage.get(storageName);// 获得本地存储存的值
-    # _0x30b2eb为递归md5
-
-    # 需要校验下面这些参数
-    REQUIRE_KEY = {
-        ''
-    }
-
-    response = requests.post(devices_info_url, json={
-        'appId': 'default',
-        'compress': 2,
-        'data': 'todo',
-        'encode': 5,
-        'ep': 'TODO',
-        'organization': 'UWXspnCCJN4sfYlNfqps',  # 固定值
-        'os': 'web'  # 固定值
-    })
 
 
 def get_cred_by_token(token):
