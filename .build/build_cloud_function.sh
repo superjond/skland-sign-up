@@ -3,4 +3,4 @@ cd ../
 mkdir ./dist/cloud_functions
 pyinstaller --distpath ./dist/cloud_functions index.py
 touch dist/cloud_functions/INPUT_HYPERGRYPH_TOKEN.txt
-echo "./index/index" > dist/cloud_functions/bootstrap
+cp ./.build/bootstrap ./dist/cloud_functions

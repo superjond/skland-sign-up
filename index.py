@@ -1,13 +1,10 @@
 import logging
-import sys
 import threading
 
 import skyland
 
 # 华为云本地文件在./code下面
-# 注：cred过几个小时就会失效，不要使用它，得用鹰角通行证账号获得它
-# file_save_name = f'{os.path.dirname(__file__)}/creds.txt'
-file_save_token = 'INPUT_HYPERGRYPH_TOKEN.txt'
+file_save_token = './code/INPUT_HYPERGRYPH_TOKEN.txt'
 
 
 def read(path):
