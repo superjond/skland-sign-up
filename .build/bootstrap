@@ -17,7 +17,6 @@ do
 
   p=$(dirname "$0")
   RESPONSE=$($p/index/index)
-
   # Put response
   curl -X POST "http://$RUNTIME_API_ADDR/v1/runtime/invocation/response/$REQUEST_ID" -d "$RESPONSE"
 done
