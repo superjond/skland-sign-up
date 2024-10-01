@@ -19,15 +19,12 @@ def read(path):
     return v
 
 
-def handler(event, context):
+def handler():
     token = read(file_save_token)
     if token:
         for i in range(1, len(token)):
             threading.Thread(target=start, args=(token[i],)).start()
         start(token[0])
-    return {
-        "statusCode": 200,
-    }
 
 
 def start(token):
@@ -36,3 +33,6 @@ def start(token):
         skyland.do_sign(cred)
     except Exception as ex:
         logging.error('签到完全失败了！：', exc_info=ex)
+
+
+handler()

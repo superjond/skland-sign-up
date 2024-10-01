@@ -1,19 +1,18 @@
-import time
-
-import requests
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.ciphers.algorithms import AES, TripleDES
-from cryptography.hazmat.primitives.ciphers.base import Cipher
-from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
-from cryptography.hazmat.primitives.asymmetric import padding
-
 import base64
-import hashlib
-
 import gzip
+import hashlib
 # 数美加密方法类
 import json
+import time
 import uuid
+
+import requests
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.decrepit.ciphers.algorithms import TripleDES
+from cryptography.hazmat.primitives.ciphers.base import Cipher
+from cryptography.hazmat.primitives.ciphers.modes import CBC, ECB
 
 # 查询dId请求头
 devices_info_url = "https://fp-it.portal101.cn/deviceprofile/v4"
