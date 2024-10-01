@@ -1,0 +1,2 @@
+path="$(pwd)/INPUT_HYPERGRYPH_TOKEN.txt"
+./index/index $path
