@@ -7,7 +7,7 @@ import skyland
 # 华为云本地文件在./code下面
 # 注：cred过几个小时就会失效，不要使用它，得用鹰角通行证账号获得它
 # file_save_name = f'{os.path.dirname(__file__)}/creds.txt'
-file_save_token = sys.argv[2]
+file_save_token = 'INPUT_HYPERGRYPH_TOKEN.txt'
 
 
 def read(path):
@@ -29,7 +29,7 @@ def handler():
 
 def start(token):
     try:
-        cred = skyland.login_by_token(token)
+        cred = skyland.get_cred_by_token(token)
         skyland.do_sign(cred)
     except Exception as ex:
         logging.error('签到完全失败了！：', exc_info=ex)

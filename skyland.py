@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import os.path
+import threading
 import time
 from datetime import date
 from getpass import getpass
@@ -18,7 +19,7 @@ token_env = os.environ.get('TOKEN')
 # 现在想做什么？
 current_type = os.environ.get('SKYLAND_TYPE')
 
-sign_token = ''
+http_local = threading.local()
 header = {
     'cred': '',
     'User-Agent': 'Skland/1.0.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
@@ -126,13 +127,12 @@ def generate_signature(token: str, path, body_or_query):
     return md5, header_ca
 
 
-def get_sign_header(url: str, method, body, old_header):
-    h = json.loads(json.dumps(old_header))
+def get_sign_header(url: str, method, body, h):
     p = parse.urlparse(url)
     if method.lower() == 'get':
-        h['sign'], header_ca = generate_signature(sign_token, p.path, p.query)
+        h['sign'], header_ca = generate_signature(http_local.token, p.path, p.query)
     else:
-        h['sign'], header_ca = generate_signature(sign_token, p.path, json.dumps(body))
+        h['sign'], header_ca = generate_signature(http_local.token, p.path, json.dumps(body))
     for i in header_ca:
         h[i] = header_ca[i]
     return h
@@ -206,7 +206,7 @@ def get_cred(grant):
 
 def get_binding_list():
     v = []
-    resp = requests.get(binding_url, headers=get_sign_header(binding_url, 'get', None, header)).json()
+    resp = requests.get(binding_url, headers=get_sign_header(binding_url, 'get', None, http_local.header)).json()
 
     if resp['code'] != 0:
         print(f"请求角色列表出现问题：{resp['message']}")
@@ -222,15 +222,14 @@ def get_binding_list():
 
 
 def list_awards(game_id, uid):
-    resp = requests.get(sign_url, headers=header, params={'gameId': game_id, 'uid': uid}).json()
+    resp = requests.get(sign_url, headers=http_local.header, params={'gameId': game_id, 'uid': uid}).json()
     print(resp)
 
 
 def do_sign(cred_resp):
-    # 加到全局里去吧，反正没有多线程
-    global sign_token
-    sign_token = cred_resp['token']
-    header['cred'] = cred_resp['cred']
+    http_local.token = cred_resp['token']
+    http_local.header = header.copy()
+    http_local.header['cred'] = cred_resp['cred']
     characters = get_binding_list()
 
     for i in characters:
@@ -239,7 +238,8 @@ def do_sign(cred_resp):
             'uid': i.get('uid')
         }
         # list_awards(1, i.get('uid'))
-        resp = requests.post(sign_url, headers=get_sign_header(sign_url, 'post', body, header), json=body).json()
+        resp = requests.post(sign_url, headers=get_sign_header(sign_url, 'post', body, http_local.header),
+                             json=body).json()
         if resp['code'] != 0:
             print(f'角色{i.get("nickName")}({i.get("channelName")})签到失败了！原因：{resp.get("message")}')
             continue
