@@ -318,7 +318,10 @@ def get_d_id():
         'os': 'web'  # 固定值
     })
 
-    print(response.json())
+    resp = response.json()
+    if resp['code'] != 1100:
+        raise Exception("did计算失败，请联系作者")
+    return resp['detail']['deviceId']
 
 
 get_d_id()

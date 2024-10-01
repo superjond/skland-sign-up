@@ -12,6 +12,8 @@ import requests
 
 from datetime import date
 
+from SecuritySm import get_d_id
+
 token_save_name = 'TOKEN.txt'
 app_code = '4ca99fa6b56cc2ba'
 token_env = os.environ.get('TOKEN')
@@ -25,7 +27,8 @@ header = {
 header_login = {
     'User-Agent': 'Skland/1.0.1 (com.hypergryph.skland; build:100001014; Android 31; ) Okhttp/4.11.0',
     'Accept-Encoding': 'gzip',
-    'Connection': 'close'
+    'Connection': 'close',
+    'dId': get_d_id()
 }
 
 # 签名请求头一定要这个顺序，否则失败
