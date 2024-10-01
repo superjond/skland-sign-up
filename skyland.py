@@ -1,22 +1,23 @@
 import hashlib
 import hmac
 import json
+import logging
 import os.path
 import time
-import uuid
+from datetime import date
 from getpass import getpass
-import logging
 from urllib import parse
 
 import requests
-
-from datetime import date
 
 from SecuritySm import get_d_id
 
 token_save_name = 'TOKEN.txt'
 app_code = '4ca99fa6b56cc2ba'
 token_env = os.environ.get('TOKEN')
+# 现在想做什么？
+current_type = os.environ.get('SKYLAND_TYPE')
+
 sign_token = ''
 header = {
     'cred': '',
@@ -163,7 +164,7 @@ def parse_user_token(t):
 
 def login_by_password():
     phone = input('请输入手机号码：')
-    password = getpass('请输入密码：')
+    password = getpass('请输入密码(不会显示在屏幕上面)：')
     r = requests.post(token_password_url, json={"phone": phone, "password": password}, headers=header_login).json()
     return get_token(r)
 
@@ -194,7 +195,6 @@ def get_grant_code(token):
 
 
 def get_cred(grant):
-    # TODO Did请求头不对 // 应该是deviceId的缩写
     resp = requests.post(cred_code_url, json={
         'code': grant,
         'kind': 1
@@ -255,10 +255,12 @@ def save(token):
     with open(token_save_name, 'w') as f:
         f.write(token)
     print(
-        f'您的鹰角网络通行证已经保存在{token_save_name}, 打开这个可以把它复制到云函数服务器上执行!\n如果需要再次运行，删除创建的这个文件即可')
+        f'您的鹰角网络通行证保存在{token_save_name}, 打开这个可以把它复制到云函数服务器上执行!\n双击添加账号即可再次添加账号')
 
 
 def read(path):
+    if not os.path.exists(token_save_name):
+        return []
     v = []
     with open(path, 'r', encoding='utf-8') as f:
         for i in f.readlines():
@@ -278,21 +280,25 @@ def read_from_env():
     return v
 
 
-def do_init():
+def init_token():
     if token_env:
         print('使用环境变量里面的token')
         # 对于github action,不需要存储token,因为token在环境变量里
         return read_from_env()
+    tokens = []
+    tokens.extend(read(token_save_name))
+    add_account = current_type == 'add_account'
+    if add_account:
+        print('！！！您启用了添加账号模式，将不会签到！！！')
+    if len(tokens) == 0 or add_account:
+        tokens.append(input_for_token())
+    save('\n'.join(tokens))
+    return [] if add_account else tokens
 
-    # 检测文件里是否有token
-    if os.path.exists(token_save_name):
-        v = read(token_save_name)
-        if v:
-            return v
-    # 没有的话
-    token = ''
+
+def input_for_token():
     print("请输入你需要做什么：")
-    print("1.使用用户名密码登录（非常推荐，但可能因为人机验证失败）")
+    print("1.使用用户名密码登录（非常推荐）")
     print("2.使用手机验证码登录（非常推荐，但可能因为人机验证失败）")
     print("3.手动输入鹰角网络通行证账号登录(推荐)")
     mode = input('请输入（1，2，3）：')
@@ -304,12 +310,11 @@ def do_init():
         token = login_by_token()
     else:
         exit(-1)
-    save(token)
-    return [token]
+    return token
 
 
 def start():
-    token = do_init()
+    token = init_token()
     for i in token:
         try:
             do_sign(get_cred_by_token(i))

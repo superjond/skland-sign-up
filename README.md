@@ -23,6 +23,7 @@
 - [多账号支持](#multiple_account)
 - [多端登录问题](#multiple_login)
 - [有关新版本参数验证](#sign-header)
+- [有关新版本获得Cred必传的dId参数](#dId)
 
 [视频用法]( https://www.bilibili.com/video/BV1DP411h7s6)
 
@@ -242,3 +243,9 @@ TOKEN和日志应该都会被存储在MAA根路径下
 'dId': 'de9759a5afaa634f',
 'platform': '1'
 ```
+
+## 有关新版本获得Cred必传的dId参数
+
+2024.9.10 森空岛登入接口引入了数美接口，请求头必须传递dId参数，导致无法正常登陆
+
+现已解决，具体实现看`SecuritySm.py`文件
