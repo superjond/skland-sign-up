@@ -28,10 +28,6 @@ SM_CONFIG = {
 }
 
 PK = serialization.load_der_public_key(base64.b64decode(SM_CONFIG['publicKey']))
-# rsa.PublicKey.load_pkcs1_openssl_der()
-#
-# rsa.encrypt()
-
 
 DES_RULE = {
     "appId": {
@@ -259,11 +255,8 @@ def get_smid():
     _time = '{}{:0>2d}{:0>2d}{:0>2d}{:0>2d}{:0>2d}'.format(t.tm_year, t.tm_mon, t.tm_mday, t.tm_hour, t.tm_min,
                                                            t.tm_sec)
     uid = str(uuid.uuid4())
-
     v = _time + hashlib.md5(uid.encode('utf-8')).hexdigest() + '00'
-
     smsk_web = hashlib.md5(('smsk_web_' + v).encode('utf-8')).hexdigest()[0:14]
-
     return v + smsk_web + '0'
 
 
@@ -298,7 +291,7 @@ def get_d_id():
         'os': 'web',
         'version': '3.0.0',
         'sdkver': '3.0.0',
-        'box': '',  # 似乎是个SMID，但是第一次的时候是空,但不影响结果
+        'box': '',  # 似乎是个SMID，但是第一次的时候是空,不过不影响结果
         'rtype': 'all',
         'smid': get_smid(),
         'subVersion': '1.0.0',
@@ -321,7 +314,5 @@ def get_d_id():
     resp = response.json()
     if resp['code'] != 1100:
         raise Exception("did计算失败，请联系作者")
-    return resp['detail']['deviceId']
-
-
-get_d_id()
+    # 开头必须是B
+    return 'B' + resp['detail']['deviceId']
